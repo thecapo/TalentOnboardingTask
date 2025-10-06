@@ -4,6 +4,7 @@ import { TableComponent } from '../../components/TableComponent';
 import { ModalComponent } from '../../components/ModalComponent';
 import { NewButton } from '../../components/NewButton';
 import { SubmitButton } from '../../components/SubmitButton';
+import { Response } from '../../components/Response';
 import { getStores, postStore, updateStore, deleteStore } from '../../redux/storeSlice';
 
 export const Stores = () => {
@@ -87,16 +88,7 @@ export const Stores = () => {
 
             <NewButton setFormData={setFormData} setOpen={setOpen} entityName="Store" />
 
-            {/* Status & Error Messages */}
-            {status === 'loading' && (
-                <div className="text-center my-4 text-blue-500">Loading stores...</div>
-            )}
-            {status === 'succeeded' && (
-                <div className="text-center my-4 text-green-500">Loading success...</div>
-            )}
-            {error && (
-                <div className="text-center my-4 text-red-600">Error: {error}</div>
-            )}
+            <Response status={status} error={error} entityName="Stores" />
 
             <ModalComponent
                 setOpen={setOpen}
@@ -115,7 +107,7 @@ export const Stores = () => {
                             name="name"
                             required
                             placeholder="Name"
-                            pattern="[A-Za-z]+"
+                            pattern="[A-Za-z ]+"
                             title="Only letters are allowed"
                             onChange={handleChange}
                             value={formData.name || ''}

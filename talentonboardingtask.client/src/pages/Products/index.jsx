@@ -4,6 +4,7 @@ import { TableComponent } from '../../components/TableComponent';
 import { ModalComponent } from '../../components/ModalComponent';
 import { NewButton } from '../../components/NewButton';
 import { SubmitButton } from '../../components/SubmitButton';
+import { Response } from '../../components/Response';
 import { getProducts, postProduct, updateProduct, deleteProduct } from '../../redux/productSlice';
 
 export const Products = () => {
@@ -87,16 +88,7 @@ export const Products = () => {
 
             <NewButton setFormData={setFormData} setOpen={setOpen} entityName="Product" />
 
-            {/* Status & Error Messages */}
-            {status === 'loading' && (
-                <div className="text-center my-4 text-blue-500">Loading products...</div>
-            )}
-            {status === 'succeeded' && (
-                <div className="text-center my-4 text-green-500">Loading success...</div>
-            )}
-            {error && (
-                <div className="text-center my-4 text-red-600">Error: {error}</div>
-            )}
+            <Response status={status} error={error} entityName="Products" />
 
             <ModalComponent
                 setOpen={setOpen}
@@ -115,7 +107,7 @@ export const Products = () => {
                             name="name"
                             required
                             placeholder="Name"
-                            pattern="[A-Za-z]+"
+                            pattern="[A-Za-z ]+"
                             title="Only letters are allowed"
                             onChange={handleChange}
                             value={formData.name || ''}
@@ -123,7 +115,7 @@ export const Products = () => {
 
                         <label>Price</label>
                         <input
-                            type="text"
+                            type="number"
                             name="price"
                             required
                             placeholder="Price"

@@ -142,7 +142,6 @@ export const TableComponent = ({ data, onEdit, handleDeleteClick, columns, size 
 
                         {/* Page Numbers */}
                         {pageNumbers.map((number) => (
-                    
                                 <li key={number}>
                                     <button
                                         onClick={() => goToPage(number)}
@@ -151,7 +150,6 @@ export const TableComponent = ({ data, onEdit, handleDeleteClick, columns, size 
                                         {number}
                                     </button>
                                 </li>
-                    
                         ))}
 
                         <button onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages} style={buttonStyle(currentPage === totalPages)} >

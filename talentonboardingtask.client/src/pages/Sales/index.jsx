@@ -8,10 +8,12 @@ import { getStores } from "../../redux/storeSlice";
 import { getSales, postSale, updateSale, deleteSale } from '../../redux/saleSlice';
 import { NewButton } from '../../components/NewButton';
 import { SubmitButton } from '../../components/SubmitButton';
+import { Response } from '../../components/Response';
 import { salesStyle } from '../Sales/sales.styles';
+import { ChevronDownIcon } from '@heroicons/react/20/solid'
  
 export const Sales = () => {
-    const { sales, size, page } = useSelector((state) => state.sales);
+    const { sales, size, page, status, error } = useSelector((state) => state.sales);
     const { customers } = useSelector((state) => state.customers);
     const { products } = useSelector((state) => state.products);
     const { stores } = useSelector((state) => state.stores);
@@ -45,8 +47,6 @@ export const Sales = () => {
         store: '',
         dateSold: dateNow, // must base it on the backend dateSold
     });
-
-    console.log("Change Form Data", formData)
 
     const submitHandler = async (e) => { // backend was redone to fix length and id assignment issue
         e.preventDefault();
@@ -86,8 +86,6 @@ export const Sales = () => {
             store: sale.store,
             dateSold: sale.dateSold,
         })
-
-        console.log(sale)
     }
 
     const handleChange = (e) => {
@@ -97,9 +95,6 @@ export const Sales = () => {
             ...prev,
             [name]: value,
         }));
-
-
-        console.log("target", e.target.value)
     };
 
     const handleDeleteClick = (saleId) => {
@@ -124,6 +119,8 @@ export const Sales = () => {
         <div className="p-4">
             <NewButton setFormData={setFormData} setOpen={setOpen} entityName="Sale" />
 
+            <Response status={status} error={error} entityName="Sales" />
+
             <ModalComponent
                 setOpen={setOpen}
                 open={open}
@@ -145,13 +142,16 @@ export const Sales = () => {
                             max={dateNow}
                             required
                         />
-
+                        
                         <label htmlFor="customer">Customer</label>
+                        <ChevronDownIcon
+                            aria-hidden="true"
+                            className={salesStyle.chevronCustomStyle}
+                        />
                         <select
                             onChange={handleChange}
                             value={formData.customerId || ''}
                             name="customerId"
-                            required
                             className={salesStyle.select}
                         >
                             <option value=''>{formData.customer || ''}</option>
@@ -163,11 +163,14 @@ export const Sales = () => {
                         </select>
 
                         <label htmlFor="product">Product</label>
+                        <ChevronDownIcon
+                            aria-hidden="true"
+                            className={salesStyle.chevronCustomStyle}
+                        />
                         <select
                             onChange={handleChange}
                             value={formData.productId || ''}
                             name="productId"
-                            required
                             className={salesStyle.select}
                         >
                             <option value={formData.product}>{formData.product || ''}</option>
@@ -179,11 +182,14 @@ export const Sales = () => {
                         </select>
 
                         <label htmlFor="store">Store</label>
+                        <ChevronDownIcon
+                            aria-hidden="true"
+                            className={salesStyle.chevronCustomStyle}
+                        />
                         <select
                             onChange={handleChange}
                             value={formData.storeId || ''}
                             name="storeId"
-                            required
                             className={salesStyle.select}
                         >
                             <option value={formData.store}>{formData.store || ''}</option>
@@ -194,27 +200,6 @@ export const Sales = () => {
                             ))}
                         </select>
                     </div>
-
-                    {/*<div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse gap-x-[10px] sm:px-6">*/}
-                    {/*    <button type="submit" className="bg-green-900 text-white flex items-center justify-between !py-[5px]">*/}
-
-                    {/*        {formData?.id ? 'edit' : 'create'}*/}
-
-                    {/*        <div className="mx-auto flex size-12 shrink-0 items-center justify-end rounded-full bg-transparent-100 sm:mx-0 sm:size-10">*/}
-                    {/*            <CheckIcon aria-hidden="true" className="size-6 text-white-600" />*/}
-                    {/*        </div>*/}
-                    {/*    </button>*/}
-
-                    {/*    <button*/}
-                    {/*        type="button"*/}
-                    {/*        onClick={() => setOpen(false)}*/}
-                    {/*        className="bg-gray-900 text-white !py-[5px]"*/}
-                    {/*    >*/}
-
-                    {/*        cancel*/}
-
-                    {/*    </button>*/}
-                    {/*</div>*/}
 
                     <SubmitButton
                         status={status}
