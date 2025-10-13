@@ -12,7 +12,7 @@ export const getProducts = createAsyncThunk(
             },
         });
         return {
-            products: response.data,
+            products: response.data.products, // products is added due to the changes in the backend, object wrapping
             page,
             size,
         };

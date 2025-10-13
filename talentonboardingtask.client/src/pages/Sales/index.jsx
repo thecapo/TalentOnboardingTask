@@ -154,7 +154,6 @@ export const Sales = () => {
                             name="customerId"
                             className={salesStyle.select}
                         >
-                            <option value=''>{formData.customer || ''}</option>
                             {customers.map((customer) => (
                                 <option key={customer.id} value={customer.id}>
                                     {customer.name}
@@ -173,7 +172,6 @@ export const Sales = () => {
                             name="productId"
                             className={salesStyle.select}
                         >
-                            <option value={formData.product}>{formData.product || ''}</option>
                             {products.map((product) => (
                                 <option key={product.id} value={product.id}>
                                     {product.name}
@@ -192,7 +190,6 @@ export const Sales = () => {
                             name="storeId"
                             className={salesStyle.select}
                         >
-                            <option value={formData.store}>{formData.store || ''}</option>
                             {stores.map((store) => (
                                 <option key={store.id} value={store.id}>
                                     {store.name}

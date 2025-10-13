@@ -16,82 +16,130 @@ namespace TalentOnboardingTask.Server.Controllers
     public class SalesController : ControllerBase
     {
         private readonly OnboardingTaskDBContext _context;
+        private readonly ILogger<SalesController> _logger;
 
-        public SalesController(OnboardingTaskDBContext context)
+        public SalesController(OnboardingTaskDBContext context, ILogger<SalesController> logger)
         {
             _context = context;
+            _logger = logger;
             _context.Database.EnsureCreated();
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<SaleDto>>> GetAllSales()
+        public async Task<ActionResult<IEnumerable<SaleDto>>> GetAllSales([FromQuery] QueryParameters queryParameters)
         {
-            var sales = await (
-                from sale in _context.Sales
+            try
+            {
+                IQueryable<SaleDto> saleDto = _context.Sales;
 
-                    // LEFT JOIN on Customer
-                join customer in _context.Customers
-                    on sale.CustomerId equals customer.Id into customerGroup
-                from customer in customerGroup.DefaultIfEmpty()
+                saleDto = saleDto
+                    .Skip(queryParameters.Size * (queryParameters.Page - 1))
+                    .Take(queryParameters.Size);
 
-                    // LEFT JOIN on Product
-                join product in _context.Products
-                    on sale.ProductId equals product.Id into productGroup
-                from product in productGroup.DefaultIfEmpty()
+                var pagedSales = await _context.Sales.Select(s => SaleMapper.EntityToDto(s)).ToListAsync();
 
-                    // LEFT JOIN on Store
-                join store in _context.Stores
-                    on sale.StoreId equals store.Id into storeGroup
-                from store in storeGroup.DefaultIfEmpty()
-
-                select new
+                if (pagedSales == null || !pagedSales.Any())
                 {
-                    Id = sale.Id,
-
-                    CustomerId = customer != null ? customer.Id : (int?)null, // ids are called so no duplicates if have similar names
-                    ProductId = product != null ? product.Id : (int?)null,
-                    StoreId = store != null ? store.Id : (int?)null,
-
-                    Customer = customer != null ? customer.Name : "[Deleted Customer]",
-                    Product = product != null ? product.Name : "[Deleted Product]",
-                    Store = store != null ? store.Name : "[Deleted Store]",
-                    DateSold = sale.DateSold
+                    _logger.LogInformation("No sales found in the database.");
+                    return NotFound("No sales available.");
                 }
-            ).ToListAsync();
 
-            if (sales.Count > 0)
-            {
-                return Ok(sales);
+                var sales = await _context.Sales
+                    .Include(s => s.Customer)
+                    .Include(s => s.Product)
+                    .Include(s => s.Store)
+                    .Select(sale => new
+                    {
+                        Id = sale.Id,
+                        CustomerId = sale.Customer != null ? sale.CustomerId : (int?)null, // ids are called so no duplicates if have similar names
+                        ProductId = sale.Product != null ? sale.ProductId : (int?)null,
+                        StoreId = sale.Store != null ? sale.StoreId : (int?)null,
+
+                        Customer = sale.Customer != null ? sale.Customer.Name : "[Deleted Customer]",
+                        Product = sale.Product != null ? sale.Product.Name : "[Deleted Product]",
+                        Store = sale.Store != null ? sale.Store.Name : "[Deleted Store]",
+                        DateSold = sale.DateSold
+                    })
+                .ToListAsync();
+
+                return Ok(new
+                {
+                    Message = "All sale/s found successfully.",
+                    sales
+                });
             }
-            else
+            catch (Exception ex)
             {
-                return BadRequest("There are no sales available.");
+                _logger.LogError(ex, "An error occurred while retrieving sales.");
+                return StatusCode(500, "An error occurred while processing your request.");
             }
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<SaleDto>> GetSale(int id)
         {
-            var sale = await _context.Sales.FindAsync(id);
-
-            if (sale == null)
+            if (id <= 0)
             {
-                return NotFound();
+                return BadRequest("Invalid sale ID.");
             }
 
-            return Ok(SaleMapper.EntityToDto(sale));
+            try
+            {
+                var sale = await _context.Sales.FindAsync(id);
+
+                if (sale == null)
+                {
+                    _logger.LogWarning("Sale with ID {SaleId} not found.", id);
+                    return NotFound($"Sale with ID {id} not found.");
+                }
+
+                return Ok(new
+                {
+                    Message = "Sale found successfully.",
+                    GetSale = SaleMapper.EntityToDto(sale)
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving sale with ID {SaleId}", id);
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
         }
 
         [HttpPost]
         public async Task<ActionResult<SaleDto>> PostSale(SaleDto sale)
         {
-            _context.Sales.Add(SaleMapper.DtoToEntity(sale));
-            await _context.SaveChangesAsync();
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
 
-            return CreatedAtAction(
-                nameof(GetSale),
-                new { id = sale.Id },
-                SaleMapper.DtoToEntity(sale));
+            if (sale == null)
+            {
+                return BadRequest("Sale data cannot be null.");
+            }
+
+            try
+            {
+                var saleEntity = SaleMapper.DtoToEntity(sale);
+
+                _context.Sales.Add(saleEntity);
+                await _context.SaveChangesAsync();
+
+                CreatedAtAction(nameof(GetSale), new { id = saleEntity.Id }, SaleMapper.EntityToDto(saleEntity));
+
+                return Ok(new
+                {
+                    Message = "Sale created successfully.",
+                    saleEntity
+                });
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while creating a new sale.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
         }
 
         [HttpPut("{id}")]
@@ -99,43 +147,83 @@ namespace TalentOnboardingTask.Server.Controllers
         {
             if (id != sale.Id)
             {
-                return BadRequest();
+                return BadRequest("ID in the path does not match the sale's ID.");
             }
 
-            _context.Entry(SaleMapper.DtoToEntity(sale)).State = EntityState.Modified;
+            if (sale == null)
+            {
+                return BadRequest("Sale data cannot be null.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
 
             try
             {
+                var saleEntity = SaleMapper.DtoToEntity(sale);
+                _context.Entry(saleEntity).State = EntityState.Modified;
+
                 await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    Message = "Sale updated successfully.",
+                    saleEntity
+                });
+
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!_context.Sales.Any(s => s.Id == id))
+                if (!_context.Sales.Any(c => c.Id == id))
                 {
-                    return NotFound();
+                    _logger.LogWarning("Sale with ID {SaleId} not found for update.", id);
+                    return NotFound($"Sale with ID {id} not found.");
                 }
-                else
-                {
-                    throw;
-                }
-            }
 
-            return NoContent();
+                _logger.LogError("Concurrency exception while updating sale with ID {SaleId}.", id);
+                return StatusCode(500, "A concurrency error occurred.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while updating sale with ID {SaleId}.", id);
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
         }
 
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteSale(int id)
         {
-            var sale = await _context.Sales.FindAsync(id);
-            if (sale == null)
+            if (id <= 0)
             {
-                return NotFound();
+                return BadRequest("Invalid sale ID.");
             }
 
-            _context.Sales.Remove(sale);
-            await _context.SaveChangesAsync();
+            try
+            {
+                var sale = await _context.Sales.FindAsync(id);
 
-            return Ok(sale);
+                if (sale == null)
+                {
+                    _logger.LogWarning("Sale with ID {SaleId} not found for deletion.", id);
+                    return NotFound($"Sale with ID {id} not found.");
+                }
+
+                _context.Sales.Remove(sale);
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    Message = "Sale deleted successfully.",
+                    DeletedSale = SaleMapper.EntityToDto(sale)
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while deleting sale with ID {SaleId}.", id);
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
         }
     }
 }

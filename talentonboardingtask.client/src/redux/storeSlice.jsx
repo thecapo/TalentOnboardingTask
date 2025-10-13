@@ -12,7 +12,7 @@ export const getStores = createAsyncThunk(
             },
         });
         return {
-            stores: response.data,
+            stores: response.data.stores, // stores is added due to the changes in the backend, object wrapping
             page,
             size,
         };

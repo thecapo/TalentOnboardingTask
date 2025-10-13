@@ -7,60 +7,118 @@ using TalentOnboardingTask.Server.Mappers;
 
 namespace TalentOnboardingTask.Server.Controllers
 {
-    // CORS 
     [EnableCors("AllowSpecificOrigins")]
-    // CORS END -----------------------------------------------------
-
     [Route("api/[controller]")]
     [ApiController]
     public class CustomersController : ControllerBase
     {
         private readonly OnboardingTaskDBContext _context;
+        private readonly ILogger<CustomersController> _logger;
 
-        public CustomersController(OnboardingTaskDBContext context)
+        public CustomersController(OnboardingTaskDBContext context, ILogger<CustomersController> logger)
         {
             _context = context;
+            _logger = logger;
             _context.Database.EnsureCreated();
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<CustomerDto>>> GetAllCustomers()
+        public async Task<ActionResult<IEnumerable<CustomerDto>>> GetAllCustomers([FromQuery] QueryParameters queryParameters)
         {
-            var customers = await _context.Customers.Select(c => CustomerMapper.EntityToDto(c)).ToListAsync();
+            try
+            {
+                IQueryable<CustomerDto> customerDto = _context.Customers;
 
-            if (customers.Count > 0)
-            {
-                return Ok(customers);
+                customerDto = customerDto
+                    .Skip(queryParameters.Size * (queryParameters.Page - 1))
+                    .Take(queryParameters.Size);
+
+                var customers = await _context.Customers.Select(s => CustomerMapper.EntityToDto(s)).ToListAsync();
+
+                if (customers == null || !customers.Any())
+                {
+                    _logger.LogInformation("No customers found in the database.");
+                    return NotFound("No customers available.");
+                }
+
+                return Ok(new
+                {
+                    Message = "All customer/s found successfully.",
+                    customers
+                });
             }
-            else
+            catch (Exception ex)
             {
-                return BadRequest("There are no customers available.");
+                _logger.LogError(ex, "An error occurred while retrieving customers.");
+                return StatusCode(500, "An error occurred while processing your request.");
             }
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<CustomerDto>> GetCustomer(int id)
         {
-            var customer = await _context.Customers.FindAsync(id);
-
-            if (customer == null)
+            if (id <= 0)
             {
-                return NotFound();
+                return BadRequest("Invalid customer ID.");
             }
 
-            return Ok(CustomerMapper.EntityToDto(customer));
+            try
+            {
+                var customer = await _context.Customers.FindAsync(id);
+
+                if (customer == null)
+                {
+                    _logger.LogWarning("Customer with ID {CustomerId} not found.", id);
+                    return NotFound($"Customer with ID {id} not found.");
+                }
+
+                return Ok(new
+                {
+                    Message = "Customer found successfully.",
+                    GetCustomer = CustomerMapper.EntityToDto(customer)
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving customer with ID {CustomerId}", id);
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
         }
 
         [HttpPost]
         public async Task<ActionResult<CustomerDto>> PostCustomer(CustomerDto customer)
         {
-            _context.Customers.Add(CustomerMapper.DtoToEntity(customer));
-            await _context.SaveChangesAsync();
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
 
-            return CreatedAtAction(
-                nameof(GetCustomer),
-                new { id = customer.Id },
-                CustomerMapper.DtoToEntity(customer));
+            if (customer == null)
+            {
+                return BadRequest("Customer data cannot be null.");
+            }
+
+            try
+            {
+                var customerEntity = CustomerMapper.DtoToEntity(customer);
+
+                _context.Customers.Add(customerEntity);
+                await _context.SaveChangesAsync();
+
+                CreatedAtAction(nameof(GetCustomer), new { id = customerEntity.Id }, CustomerMapper.EntityToDto(customerEntity));
+
+                return Ok(new
+                {
+                    Message = "Customer created successfully.",
+                    customerEntity
+                });
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while creating a new customer.");
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
         }
 
         [HttpPut("{id}")]
@@ -68,43 +126,83 @@ namespace TalentOnboardingTask.Server.Controllers
         {
             if (id != customer.Id)
             {
-                return BadRequest();
+                return BadRequest("ID in the path does not match the customer's ID.");
             }
 
-            _context.Entry(CustomerMapper.DtoToEntity(customer)).State = EntityState.Modified;
+            if (customer == null)
+            {
+                return BadRequest("Customer data cannot be null.");
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
 
             try
             {
+                var customerEntity = CustomerMapper.DtoToEntity(customer);
+                _context.Entry(customerEntity).State = EntityState.Modified;
+
                 await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    Message = "Customer updated successfully.",
+                    customerEntity
+                });
+
             }
             catch (DbUpdateConcurrencyException)
             {
                 if (!_context.Customers.Any(c => c.Id == id))
                 {
-                    return NotFound();
+                    _logger.LogWarning("Customer with ID {CustomerId} not found for update.", id);
+                    return NotFound($"Customer with ID {id} not found.");
                 }
-                else
-                {
-                    throw;
-                }
-            }
 
-            return NoContent();
+                _logger.LogError("Concurrency exception while updating customer with ID {CustomerId}.", id);
+                return StatusCode(500, "A concurrency error occurred.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while updating customer with ID {CustomerId}.", id);
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
         }
 
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteCustomer(int id)
         {
-            var customer = await _context.Customers.FindAsync(id);
-            if (customer == null)
+            if (id <= 0)
             {
-                return NotFound();
+                return BadRequest("Invalid customer ID.");
             }
 
-            _context.Customers.Remove(customer);
-            await _context.SaveChangesAsync();
+            try
+            {
+                var customer = await _context.Customers.FindAsync(id);
 
-            return Ok(customer);
+                if (customer == null)
+                {
+                    _logger.LogWarning("Customer with ID {CustomerId} not found for deletion.", id);
+                    return NotFound($"Customer with ID {id} not found.");
+                }
+
+                _context.Customers.Remove(customer);
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    Message = "Customer deleted successfully.",
+                    DeletedCustomer = CustomerMapper.EntityToDto(customer)
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error occurred while deleting customer with ID {CustomerId}.", id);
+                return StatusCode(500, "An error occurred while processing your request.");
+            }
         }
     }
 }

@@ -12,7 +12,7 @@ export const getCustomers = createAsyncThunk(
             },
         });
         return {
-            customers: response.data,
+            customers: response.data.customers, // customers is added due to the changes in the backend, object wrapping
             page,
             size,
         };
