@@ -119,6 +119,13 @@ namespace TalentOnboardingTask.Server.Controllers
                 return BadRequest("Sale data cannot be null.");
             }
 
+            if (sale.CustomerId == 0)
+                return BadRequest("CustomerId needs to be set to null or correct id.");
+            if (sale.ProductId == 0)
+                return BadRequest("ProductId needs to be set to null or correct id.");
+            if (sale.StoreId == 0)
+                return BadRequest("StoreId needs to be set to null or correct id.");
+
             try
             {
                 var saleEntity = SaleMapper.DtoToEntity(sale);
@@ -138,7 +145,7 @@ namespace TalentOnboardingTask.Server.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred while creating a new sale.");
-                return StatusCode(500, "An error occurred while processing your request.");
+                return StatusCode(500, "A concurrency error occurred check if correct id or set to null.");
             }
         }
 
@@ -159,6 +166,13 @@ namespace TalentOnboardingTask.Server.Controllers
             {
                 return BadRequest(ModelState);
             }
+
+            if (sale.CustomerId == 0)
+                return BadRequest("CustomerId needs to be set to null or correct id.");
+            if (sale.ProductId == 0)
+                return BadRequest("ProductId needs to be set to null or correct id.");
+            if (sale.StoreId == 0)
+                return BadRequest("StoreId needs to be set to null or correct id.");
 
             try
             {
@@ -188,7 +202,8 @@ namespace TalentOnboardingTask.Server.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error occurred while updating sale with ID {SaleId}.", id);
-                return StatusCode(500, "An error occurred while processing your request.");
+                return StatusCode(500, "A concurrency error occurred check if correct id or set to null.");
+
             }
         }
 
