@@ -129,7 +129,7 @@ const saleSlice = createSlice({
         builder.addCase(deleteSale.fulfilled, (state, action) => {
             state.status = 'succeeded';
             // Filter out the deleted post from the state
-            state.sales = state.sales.filter(item => item.id !== action.payload.id); // Delete an item by ID
+            state.sales = state.sales.filter(item => item.id !== action.payload);
         });
         builder.addCase(deleteSale.rejected, (state, action) => {
             state.status = 'failed';

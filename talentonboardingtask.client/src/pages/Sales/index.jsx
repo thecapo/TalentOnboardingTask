@@ -35,7 +35,7 @@ export const Sales = () => {
         dispatch(getCustomers());
         dispatch(getProducts());
         dispatch(getStores());
-    }, [dispatch]);
+    }, []);
 
     const [formData, setFormData] = useState({
         id: null,
