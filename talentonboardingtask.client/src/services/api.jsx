@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 export const apiURL = axios.create({
-    baseURL: 'deploymenttask.azurewebsites.net/api',
+    baseURL: '/api',
     headers: {
         'Content-Type': 'application/json',
     },
