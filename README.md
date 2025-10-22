@@ -1,3 +1,4 @@
+If considering to make it public make sure to not include appsettings.json due to credentials
 # Talent Onboarding Task
 
 MVP Studios Talent Onboarding Task! This exercise is designed to introduce to the technologies will be using as part of the project team. 
