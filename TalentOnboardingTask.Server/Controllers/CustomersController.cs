@@ -7,7 +7,6 @@ using TalentOnboardingTask.Server.Mappers;
 
 namespace TalentOnboardingTask.Server.Controllers
 {
-    [EnableCors("AllowSpecificOrigins")]
     [Route("api/[controller]")]
     [ApiController]
     public class CustomersController : ControllerBase
