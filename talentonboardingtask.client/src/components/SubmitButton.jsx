@@ -1,7 +1,7 @@
 import React from 'react';
 import { CheckIcon } from '@heroicons/react/24/outline';
 
-export const SubmitButton = ({ status, formData, setOpen }) => (
+export const SubmitButton = ({ status, formData, setOpen, setValidationError }) => (
     <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse gap-x-[10px] sm:px-6">
         <button
             type="submit"
@@ -18,7 +18,10 @@ export const SubmitButton = ({ status, formData, setOpen }) => (
 
         <button
             type="button"
-            onClick={() => setOpen(false)}
+            onClick={() => {
+                setOpen(false)
+                setValidationError('')
+            }}
             className="bg-gray-900 text-white !py-[5px]"
         >
 

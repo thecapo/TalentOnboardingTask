@@ -14,6 +14,7 @@ export const Products = () => {
     const [productToDelete, setProductToDelete] = useState(null);
     const [showDelete, setShowDelete] = useState(false);
     const [open, setOpen] = useState(false);
+    const [validationError, setValidationError] = useState('');
 
     const columns = ["name", "price"]; // case sensitive
 
@@ -24,29 +25,59 @@ export const Products = () => {
     const [formData, setFormData] = useState({
         id: null,
         name: '',
-        price: null
+        price: ''
     });
 
-    const submitHandler = async (e) => { // backend was redone to fix length and id assignment issue
+    const submitHandler = async (e) => {
         e.preventDefault();
 
-        if (formData.id) {
-            // update product logic
-            await dispatch(updateProduct(formData));
-
-        } else {
-            // create product logic
-            await dispatch(postProduct(formData));
+        // Check name - must not be empty or spaces only
+        if (formData.name.trim() === '') {
+            setValidationError('Name cannot be empty or just spaces.');
+            return;
         }
 
-        await dispatch(getProducts()); // refresh list
+        // Check price - explicitly check for empty string or spaces only
+        if (formData.price.trim() === '') {
+            setValidationError('Price cannot be empty or just spaces.');
+            return;
+        }
+
+        // Parse price as float
+        let numericPrice = parseFloat(formData.price);
+
+        // Check if price is a valid number and >= 0
+        if (isNaN(numericPrice) || numericPrice < 0 || numericPrice === 0) {
+            setValidationError('Price must be a valid non-negative or zero number.');
+            return;
+        }
+
+        // Round to 2 decimals
+        numericPrice = Number(numericPrice.toFixed(2));
+
+        setValidationError('');
+
+        const payload = {
+            ...formData,
+            price: numericPrice,
+        };
+
+        if (formData.id) {
+            await dispatch(updateProduct(payload));
+        } else {
+            await dispatch(postProduct(payload));
+        }
+
+        await dispatch(getProducts());
+
         setFormData({
             id: null,
             name: '',
-            price: null
+            price: ''
         });
         setOpen(false);
     };
+
 
     const handleEdit = (product) => {
         setOpen(true)
@@ -59,11 +90,34 @@ export const Products = () => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
+        let sanitizedValue = value;
+
+        if (name === 'price') {
+            // Remove spaces
+            sanitizedValue = value.replace(/\s+/g, '');
+
+            // Allow only digits and one decimal point
+            sanitizedValue = sanitizedValue.replace(/[^0-9.]/g, '');
+
+            // Prevent multiple dots
+            const parts = sanitizedValue.split('.');
+            if (parts.length > 2) {
+                sanitizedValue = parts[0] + '.' + parts[1];
+            }
+
+            // Remove leading zeros unless input is '0' or starts with '0.'
+            if (!sanitizedValue.startsWith('0.') && sanitizedValue !== '0' && sanitizedValue !== 0) {
+                sanitizedValue = sanitizedValue.replace(/^0+/, '');
+                if (sanitizedValue === '') sanitizedValue = '0';
+            }
+        }
+
         setFormData(prev => ({
             ...prev,
-            [name]: value
+            [name]: sanitizedValue
         }));
     };
+
 
     const handleDeleteClick = (productId) => {
         setShowDelete(true);
@@ -101,7 +155,11 @@ export const Products = () => {
             >
                 <form onSubmit={submitHandler}>
                     <div className="px-6">
-                        <label>Name</label>
+                        {validationError && (
+                            <p className="text-red-500 mt-[8px]">{validationError}</p>
+                        )}
+
+                        <label>Name <span className="text-red-500">*</span></label>
                         <input
                             type="text"
                             name="name"
@@ -113,13 +171,12 @@ export const Products = () => {
                             value={formData.name || ''}
                         />
 
-                        <label>Price</label>
+                        <label>Price <span className="text-red-500">*</span></label>
                         <input
                             type="number"
                             name="price"
                             required
                             placeholder="Price"
-                            pattern="\d+"
                             title="Please enter numbers only"
                             onChange={handleChange}
                             value={formData.price || ''}
@@ -127,9 +184,11 @@ export const Products = () => {
                     </div>
 
                     <SubmitButton
+                        disabled={status === 'loading'}
                         status={status}
                         formData={formData}
                         setOpen={setOpen}
+                        setValidationError={setValidationError}
                     />
                 </form>
             </ModalComponent>

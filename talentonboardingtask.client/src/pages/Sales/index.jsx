@@ -22,6 +22,7 @@ export const Sales = () => {
     const [saleToDelete, setSaleToDelete] = useState(null);
     const [showDelete, setShowDelete] = useState(false);
     const [open, setOpen] = useState(false);
+    const [validationError, setValidationError] = useState('');
 
     const columns = ["customer", "product", "store", "dateSold"]; // case sensitive; if it causes error change date sold to date
     const today = new Date();
@@ -50,6 +51,15 @@ export const Sales = () => {
 
     const submitHandler = async (e) => { // backend was redone to fix length and id assignment issue
         e.preventDefault();
+
+        //
+        if (!formData.customerId || !formData.productId || !formData.storeId) {
+            setValidationError('Customer, Product and Store cannot be empty or just spaces.');
+            return;
+        }
+
+        setValidationError('');
+        //
 
         if (formData.id) {
             // update sale logic
@@ -132,6 +142,10 @@ export const Sales = () => {
             >
                 <form onSubmit={submitHandler}>
                     <div className="px-[25px]">
+                        {validationError && (
+                            <p className="text-red-500 mt-[8px]">{validationError}</p>
+                        )}
+
                         <label htmlFor="date">Date Sold</label>
                         <input
                             type="date"
@@ -140,10 +154,11 @@ export const Sales = () => {
                             onChange={handleChange}
                             value={formData.dateSold || dateNow}
                             max={dateNow}
+                            min="2000-01-01"
                             required
                         />
                         
-                        <label htmlFor="customer">Customer</label>
+                        <label htmlFor="customer">Customer <span className="text-red-500">*</span></label>
                         <ChevronDownIcon
                             aria-hidden="true"
                             className={salesStyle.chevronCustomStyle}
@@ -166,7 +181,7 @@ export const Sales = () => {
                             ))}
                         </select>
 
-                        <label htmlFor="product">Product</label>
+                        <label htmlFor="product">Product <span className="text-red-500">*</span></label>
                         <ChevronDownIcon
                             aria-hidden="true"
                             className={salesStyle.chevronCustomStyle}
@@ -189,7 +204,7 @@ export const Sales = () => {
                             ))}
                         </select>
 
-                        <label htmlFor="store">Store</label>
+                        <label htmlFor="store">Store <span className="text-red-500">*</span></label>
                         <ChevronDownIcon
                             aria-hidden="true"
                             className={salesStyle.chevronCustomStyle}
@@ -214,9 +229,11 @@ export const Sales = () => {
                     </div>
 
                     <SubmitButton
+                        disabled={status === 'loading'}
                         status={status}
                         formData={formData}
                         setOpen={setOpen}
+                        setValidationError={setValidationError}
                     />
                 </form>
             </ModalComponent>

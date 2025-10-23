@@ -14,6 +14,7 @@ export const Stores = () => {
     const [storeToDelete, setStoreToDelete] = useState(null);
     const [showDelete, setShowDelete] = useState(false);
     const [open, setOpen] = useState(false);
+    const [validationError, setValidationError] = useState('');
 
     const columns = ["name", "address"]; // case sensitive
 
@@ -29,6 +30,15 @@ export const Stores = () => {
 
     const submitHandler = async (e) => { // backend was redone to fix length and id assignment issue
         e.preventDefault();
+
+        //
+        if (formData.name.trim() === '' || formData.address.trim() === '') {
+            setValidationError('Name and Address cannot be empty or just spaces.');
+            return;
+        }
+
+        setValidationError('');
+        //
 
         if (formData.id) {
             // update store logic
@@ -101,7 +111,11 @@ export const Stores = () => {
             >
                 <form onSubmit={submitHandler}>
                     <div className="px-6">
-                        <label>Name</label>
+                        {validationError && (
+                            <p className="text-red-500 mt-[8px]">{validationError}</p>
+                        )}
+
+                        <label>Name <span className="text-red-500">*</span></label>
                         <input
                             type="text"
                             name="name"
@@ -113,7 +127,7 @@ export const Stores = () => {
                             value={formData.name || ''}
                         />
 
-                        <label>Address</label>
+                        <label>Address <span className="text-red-500">*</span></label>
                         <input
                             type="text"
                             name="address"
@@ -125,9 +139,11 @@ export const Stores = () => {
                     </div>
 
                     <SubmitButton
+                        disabled={status === 'loading'}
                         status={status}
                         formData={formData}
                         setOpen={setOpen}
+                        setValidationError={setValidationError}
                     />
                 </form>
             </ModalComponent>
