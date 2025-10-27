@@ -6,6 +6,7 @@ import { NewButton } from '../../components/NewButton';
 import { SubmitButton } from '../../components/SubmitButton';
 import { Response } from '../../components/Response';
 import { getCustomers, postCustomer, updateCustomer, deleteCustomer } from '../../redux/customerSlice';
+import { validateForm } from '../../utils/validation';
 
 export const Customers = () => {
     const { customers, size, page, status, error } = useSelector((state) => state.customers);
@@ -30,15 +31,12 @@ export const Customers = () => {
 
     const submitHandler = async (e) => { // backend was redone to fix length and id assignment issue
         e.preventDefault();
-
-        //
-        if (formData.name.trim() === '' || formData.address.trim() === '') {
-            setValidationError('Name and Address cannot be empty or just spaces.');
+        
+        const { valid, message } = validateForm('customer', formData);
+        if (!valid) {
+            setValidationError(message);
             return;
         }
-
-        setValidationError('');
-        //
 
         if (formData.id) {
             // update customer logic

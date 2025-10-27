@@ -6,6 +6,7 @@ import { NewButton } from '../../components/NewButton';
 import { SubmitButton } from '../../components/SubmitButton';
 import { Response } from '../../components/Response';
 import { getProducts, postProduct, updateProduct, deleteProduct } from '../../redux/productSlice';
+import { validateForm } from '../../utils/validation';
 
 export const Products = () => {
     const { products, size, page, status, error } = useSelector((state) => state.products);
@@ -31,36 +32,22 @@ export const Products = () => {
     const submitHandler = async (e) => {
         e.preventDefault();
 
-        // Check name - must not be empty or spaces only
-        if (formData.name.trim() === '') {
-            setValidationError('Name cannot be empty or just spaces.');
-            return;
-        }
-
-        // Check price - explicitly check for empty string or spaces only
-        if (formData.price.trim() === '') {
-            setValidationError('Price cannot be empty or just spaces.');
-            return;
-        }
-
-        // Parse price as float
+        //// Parse price as float
         let numericPrice = parseFloat(formData.price);
 
-        // Check if price is a valid number and >= 0
-        if (isNaN(numericPrice) || numericPrice < 0 || numericPrice === 0) {
-            setValidationError('Price must be a valid non-negative or zero number.');
-            return;
-        }
-
-        // Round to 2 decimals
+        //// Round to 2 decimals
         numericPrice = Number(numericPrice.toFixed(2));
-
-        setValidationError('');
 
         const payload = {
             ...formData,
             price: numericPrice,
         };
+
+        const { valid, message } = validateForm('product', formData);
+        if (!valid) {
+            setValidationError(message);
+            return;
+        }
 
         if (formData.id) {
             await dispatch(updateProduct(payload));

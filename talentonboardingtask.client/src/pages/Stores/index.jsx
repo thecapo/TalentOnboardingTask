@@ -6,6 +6,7 @@ import { NewButton } from '../../components/NewButton';
 import { SubmitButton } from '../../components/SubmitButton';
 import { Response } from '../../components/Response';
 import { getStores, postStore, updateStore, deleteStore } from '../../redux/storeSlice';
+import { validateForm } from '../../utils/validation';
 
 export const Stores = () => {
     const { stores, size, page, status, error } = useSelector((state) => state.stores);
@@ -31,14 +32,11 @@ export const Stores = () => {
     const submitHandler = async (e) => { // backend was redone to fix length and id assignment issue
         e.preventDefault();
 
-        //
-        if (formData.name.trim() === '' || formData.address.trim() === '') {
-            setValidationError('Name and Address cannot be empty or just spaces.');
+        const { valid, message } = validateForm('store', formData);
+        if (!valid) {
+            setValidationError(message);
             return;
         }
-
-        setValidationError('');
-        //
 
         if (formData.id) {
             // update store logic

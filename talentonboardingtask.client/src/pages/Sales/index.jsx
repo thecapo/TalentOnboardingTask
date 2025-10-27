@@ -11,6 +11,7 @@ import { SubmitButton } from '../../components/SubmitButton';
 import { Response } from '../../components/Response';
 import { salesStyle } from '../Sales/sales.styles';
 import { ChevronDownIcon } from '@heroicons/react/20/solid'
+import { validateForm } from '../../utils/validation';
  
 export const Sales = () => {
     const { sales, size, page, status, error } = useSelector((state) => state.sales);
@@ -52,14 +53,11 @@ export const Sales = () => {
     const submitHandler = async (e) => { // backend was redone to fix length and id assignment issue
         e.preventDefault();
 
-        //
-        if (!formData.customerId || !formData.productId || !formData.storeId) {
-            setValidationError('Customer, Product and Store cannot be empty or just spaces.');
+        const { valid, message } = validateForm('sale', formData);
+        if (!valid) {
+            setValidationError(message);
             return;
         }
-
-        setValidationError('');
-        //
 
         if (formData.id) {
             // update sale logic
